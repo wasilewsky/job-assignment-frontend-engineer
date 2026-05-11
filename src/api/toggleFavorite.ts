@@ -9,6 +9,7 @@ export async function favoriteArticle(slug: string, token: string): Promise<Arti
   const data = await apiRequest<{ article: Article }>(path, {
     method: "POST",
     token,
+    body: {},
   });
   return data.article;
 }

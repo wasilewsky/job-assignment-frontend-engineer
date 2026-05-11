@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getProfile } from "api/getProfile";
 import { getArticles } from "api/getArticles";
+import { followUser, unfollowUser } from "api/toggleFollow";
+import { favoriteArticle, unfavoriteArticle } from "api/toggleFavorite";
+import { useAuth } from "context/AuthContext";
 import type { Profile, Article } from "types/conduit";
 import { formatArticleDate } from "utils/date";
 
@@ -13,8 +16,15 @@ export default function Profile() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
+
+  const { token, initializing } = useAuth();
 
   useEffect(() => {
+    if (initializing) {
+      return;
+    }
+
     if (!username) {
       setError("Invalid profile username.");
       setLoading(false);
@@ -25,8 +35,8 @@ export default function Profile() {
     setError(null);
 
     Promise.all([
-      getProfile(username),
-      getArticles({ author: username, limit: 20, offset: 0 }),
+      getProfile(username, token),
+      getArticles({ author: username, limit: 20, offset: 0 }, token),
     ])
       .then(([fetchedProfile, fetchedArticles]) => {
         if (mounted) {
@@ -48,7 +58,42 @@ export default function Profile() {
     return () => {
       mounted = false;
     };
-  }, [username]);
+  }, [username, token, initializing]);
+
+  const handleFollowClick = async () => {
+    if (!token) {
+      window.location.hash = "/login";
+      return;
+    }
+    if (!profile) return;
+    try {
+      let updatedProfile: Profile;
+      if (profile.following) {
+        updatedProfile = await unfollowUser(profile.username, token);
+      } else {
+        updatedProfile = await followUser(profile.username, token);
+      }
+      setProfile(updatedProfile);
+    } catch {
+      setError("Error updating follow status.");
+    }
+  };
+
+  const handleFavoriteClick = async (article: Article) => {
+    if (!token) {
+      window.location.hash = "/login";
+      return;
+    }
+    setFavoriteError(null);
+    try {
+      const updated = article.favorited
+        ? await unfavoriteArticle(article.slug, token)
+        : await favoriteArticle(article.slug, token);
+      setArticles((prev) => prev.map((a) => (a.slug === updated.slug ? updated : a)));
+    } catch {
+      setFavoriteError("Could not update favorite. Please try again.");
+    }
+  };
 
   return (
     <>
@@ -108,9 +153,18 @@ export default function Profile() {
                     />
                     <h4>{profile.username}</h4>
                     <p>{profile.bio || "No bio available."}</p>
-                    <button className="btn btn-sm btn-outline-secondary action-btn">
+                    <button
+                      className={
+                        "btn btn-sm action-btn" +
+                        (profile.following
+                          ? " btn-outline-secondary active"
+                          : " btn-outline-secondary")
+                      }
+                      onClick={handleFollowClick}
+                      style={{ cursor: "pointer" }}
+                    >
                       <i className="ion-plus-round" />
-                      &nbsp; Follow {profile.username}
+                      &nbsp;{profile.following ? "Unfollow" : "Follow"} {profile.username}
                     </button>
                   </>
                 ) : null}
@@ -146,7 +200,11 @@ export default function Profile() {
                   This author has no articles yet.
                 </div>
               ) : (
-                articles.map((article) => (
+                <>
+                  {favoriteError && (
+                    <div style={{ color: "red", marginBottom: "12px" }}>{favoriteError}</div>
+                  )}
+                  {articles.map((article) => (
                   <div className="article-preview" key={article.slug}>
                     <div className="article-meta">
                       <a href={`/#/profile/${article.author.username}`}>
@@ -166,7 +224,13 @@ export default function Profile() {
                           {formatArticleDate(article.createdAt)}
                         </span>
                       </div>
-                      <button className="btn btn-outline-primary btn-sm pull-xs-right">
+                      <button
+                        type="button"
+                        className={`btn btn-outline-primary btn-sm pull-xs-right${article.favorited ? " active" : ""}`}
+                        onClick={() => handleFavoriteClick(article)}
+                        aria-pressed={article.favorited}
+                        style={{ cursor: "pointer" }}
+                      >
                         <i className="ion-heart" /> {article.favoritesCount}
                       </button>
                     </div>
@@ -188,7 +252,8 @@ export default function Profile() {
                       )}
                     </a>
                   </div>
-                ))
+                  ))}
+                </>
               )}
             </div>
           </div>

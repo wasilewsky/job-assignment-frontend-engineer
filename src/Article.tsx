@@ -5,6 +5,7 @@ import type { Article as ArticleModel } from "types/conduit";
 import { formatArticleDate } from "utils/date";
 import { useAuth } from "context/AuthContext";
 import { favoriteArticle, unfavoriteArticle } from "api/toggleFavorite";
+import { followUser, unfollowUser } from "api/toggleFollow";
 
 const AVATAR_FALLBACK = "https://static.productionready.io/images/smiley-cyrus.jpg";
 
@@ -13,9 +14,14 @@ export default function Article() {
   const [article, setArticle] = useState<ArticleModel | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const { token } = useAuth();
+  const [actionError, setActionError] = useState<string | null>(null);
+  const { token, initializing } = useAuth();
 
   useEffect(() => {
+    if (initializing) {
+      return;
+    }
+
     if (!slug) {
       setError("Invalid article slug.");
       setLoading(false);
@@ -25,10 +31,11 @@ export default function Article() {
     let mounted = true;
     setLoading(true);
     setError(null);
+    setActionError(null);
 
     (async () => {
       try {
-        const nextArticle = await getArticle(slug);
+        const nextArticle = await getArticle(slug, token);
         if (mounted) {
           setArticle(nextArticle);
         }
@@ -46,7 +53,7 @@ export default function Article() {
     return () => {
       mounted = false;
     };
-  }, [slug]);
+  }, [slug, token, initializing]);
 
   // Handler for favorite button
   const handleFavoriteClick = async () => {
@@ -55,6 +62,7 @@ export default function Article() {
       return;
     }
     if (!article) return;
+    setActionError(null);
     try {
       let updated: ArticleModel;
       if (article.favorited) {
@@ -63,8 +71,32 @@ export default function Article() {
         updated = await favoriteArticle(article.slug, token);
       }
       setArticle(updated);
-    } catch (err) {
-      setError("Error updating favorite status.");
+    } catch {
+      setActionError("Could not update favorite. Please try again.");
+    }
+  };
+
+  // Handler for follow/unfollow button
+  const handleFollowClick = async () => {
+    if (!token) {
+      window.location.hash = "/login";
+      return;
+    }
+    if (!article) return;
+    setActionError(null);
+    try {
+      const nextProfile = article.author.following
+        ? await unfollowUser(article.author.username, token)
+        : await followUser(article.author.username, token);
+      setArticle((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          author: nextProfile,
+        };
+      });
+    } catch {
+      setActionError("Could not update follow status. Please try again.");
     }
   };
 
@@ -115,6 +147,11 @@ export default function Article() {
           <div style={{ padding: "24px", color: "red", textAlign: "center" }}>{error}</div>
         ) : article ? (
           <>
+            {actionError && (
+              <div className="container" style={{ paddingTop: "12px" }}>
+                <div style={{ color: "red" }}>{actionError}</div>
+              </div>
+            )}
             <div className="banner">
               <div className="container">
                 <h1>{article.title}</h1>
@@ -129,9 +166,13 @@ export default function Article() {
                     </a>
                     <span className="date">{formatArticleDate(article.createdAt)}</span>
                   </div>
-                  <button className="btn btn-sm btn-outline-secondary">
+                  <button
+                    className={`btn btn-sm btn-outline-secondary${article.author.following ? " active" : ""}`}
+                    onClick={handleFollowClick}
+                    style={{ cursor: "pointer" }}
+                  >
                     <i className="ion-plus-round" />
-                    &nbsp; Follow {article.author.username} <span className="counter">(10)</span>
+                    &nbsp; {article.author.following ? "Unfollow" : "Follow"} {article.author.username}
                   </button>
                   &nbsp;&nbsp;
                   <button
@@ -167,9 +208,13 @@ export default function Article() {
                     </a>
                     <span className="date">{formatArticleDate(article.createdAt)}</span>
                   </div>
-                  <button className="btn btn-sm btn-outline-secondary">
+                  <button
+                    className={`btn btn-sm btn-outline-secondary${article.author.following ? " active" : ""}`}
+                    onClick={handleFollowClick}
+                    style={{ cursor: "pointer" }}
+                  >
                     <i className="ion-plus-round" />
-                    &nbsp; Follow {article.author.username}
+                    &nbsp; {article.author.following ? "Unfollow" : "Follow"} {article.author.username}
                   </button>
                   &nbsp;
                   <button

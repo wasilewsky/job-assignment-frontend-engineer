@@ -14,7 +14,10 @@ type GetArticlesResponse = {
   articlesCount: number;
 };
 
-export async function getArticles(params?: GetArticlesParams): Promise<GetArticlesResponse> {
+export async function getArticles(
+  params?: GetArticlesParams,
+  token?: string | null
+): Promise<GetArticlesResponse> {
   const query = new URLSearchParams();
 
   if (params) {
@@ -28,5 +31,5 @@ export async function getArticles(params?: GetArticlesParams): Promise<GetArticl
   const suffix = query.toString();
   const path = `/articles${suffix ? `?${suffix}` : ""}`;
 
-  return apiRequest<GetArticlesResponse>(path);
+  return apiRequest<GetArticlesResponse>(path, { token });
 }

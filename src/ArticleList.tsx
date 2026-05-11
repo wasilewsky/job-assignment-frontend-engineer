@@ -9,11 +9,15 @@ export default function ArticleList() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
-  // Get user from AuthContext to check if logged in
-  const { token } = useAuth();
+  const { token, initializing } = useAuth();
 
   useEffect(() => {
+    if (initializing) {
+      return;
+    }
+
     let mounted = true;
 
     (async () => {
@@ -21,7 +25,7 @@ export default function ArticleList() {
       setError(null);
 
       try {
-        const data = await getArticles({ limit: 20, offset: 0 });
+        const data = await getArticles({ limit: 20, offset: 0 }, token);
         if (mounted) {
           setArticles(data.articles);
         }
@@ -39,7 +43,7 @@ export default function ArticleList() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [token, initializing]);
 
   // Handle click on heart button
   const handleFavoriteClick = async (article: Article) => {
@@ -48,6 +52,7 @@ export default function ArticleList() {
       return;
     }
 
+    setFavoriteError(null);
     try {
       let updated: Article;
       if (article.favorited) {
@@ -56,10 +61,8 @@ export default function ArticleList() {
         updated = await favoriteArticle(article.slug, token);
       }
       setArticles((prev) => prev.map((a) => (a.slug === updated.slug ? updated : a)));
-    } catch (err) {
-      // Optionally show an error message per-article or with setError
-      // For now, do nothing or set error globally if you want
-      setError("Error updating favorite status");
+    } catch {
+      setFavoriteError("Could not update favorite. Please try again.");
     }
   };
 
@@ -130,6 +133,9 @@ export default function ArticleList() {
               </div>
 
               {/* render states for loading, error, and articles */}
+              {favoriteError && (
+                <div style={{ color: "red", marginBottom: "12px" }}>{favoriteError}</div>
+              )}
               {loading ? (
                 <div>Loading...</div>
               ) : error ? (
