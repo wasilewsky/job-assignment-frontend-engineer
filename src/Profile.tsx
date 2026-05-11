@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { NavLink, useLocation, useParams } from "react-router-dom";
 import { getProfile } from "api/getProfile";
 import { getArticles } from "api/getArticles";
 import { followUser, unfollowUser } from "api/toggleFollow";
@@ -12,6 +12,8 @@ const AVATAR_FALLBACK = "https://static.productionready.io/images/smiley-cyrus.j
 
 export default function Profile() {
   const { username } = useParams<{ username: string }>();
+  const location = useLocation();
+  const isFavoritesTab = location.pathname.endsWith("/favorites");
   const [profile, setProfile] = useState<ConduitProfile | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -34,10 +36,11 @@ export default function Profile() {
     setLoading(true);
     setError(null);
 
-    Promise.all([
-      getProfile(username, token),
-      getArticles({ author: username, limit: 20, offset: 0 }, token),
-    ])
+    const articleQuery = isFavoritesTab
+      ? { favorited: username, limit: 20, offset: 0 }
+      : { author: username, limit: 20, offset: 0 };
+
+    Promise.all([getProfile(username, token), getArticles(articleQuery, token)])
       .then(([fetchedProfile, fetchedArticles]) => {
         if (mounted) {
           setProfile(fetchedProfile);
@@ -58,7 +61,7 @@ export default function Profile() {
     return () => {
       mounted = false;
     };
-  }, [username, token, initializing]);
+  }, [username, token, initializing, isFavoritesTab]);
 
   const handleFollowClick = async () => {
     if (!token) {
@@ -96,46 +99,7 @@ export default function Profile() {
   };
 
   return (
-    <>
-      <nav className="navbar navbar-light">
-        <div className="container">
-          <a className="navbar-brand" href="/#">
-            conduit
-          </a>
-          <ul className="nav navbar-nav pull-xs-right">
-            <li className="nav-item">
-              {/* Add "active" class when you're on that page" */}
-              <a className="nav-link active" href="/#">
-                Home
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/editor">
-                <i className="ion-compose" />
-                &nbsp;New Article
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/settings">
-                <i className="ion-gear-a" />
-                &nbsp;Settings
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/login">
-                Sign in
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/register">
-                Sign up
-              </a>
-            </li>
-          </ul>
-        </div>
-      </nav>
-
-      <div className="profile-page">
+    <div className="profile-page">
         <div className="user-info">
           <div className="container">
             <div className="row">
@@ -179,14 +143,24 @@ export default function Profile() {
               <div className="articles-toggle">
                 <ul className="nav nav-pills outline-active">
                   <li className="nav-item">
-                    <a className="nav-link active" href="">
+                    <NavLink
+                      exact
+                      className="nav-link"
+                      activeClassName="active"
+                      to={`/profile/${username}`}
+                    >
                       My Articles
-                    </a>
+                    </NavLink>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="">
+                    <NavLink
+                      exact
+                      className="nav-link"
+                      activeClassName="active"
+                      to={`/profile/${username}/favorites`}
+                    >
                       Favorited Articles
-                    </a>
+                    </NavLink>
                   </li>
                 </ul>
               </div>
@@ -197,7 +171,7 @@ export default function Profile() {
                 <div style={{ padding: "24px", color: "red", textAlign: "center" }}>{error}</div>
               ) : articles.length === 0 ? (
                 <div className="article-preview" style={{ textAlign: "center", color: "#bbb" }}>
-                  This author has no articles yet.
+                  {isFavoritesTab ? "No favorited articles yet." : "This author has no articles yet."}
                 </div>
               ) : (
                 <>
@@ -258,19 +232,6 @@ export default function Profile() {
             </div>
           </div>
         </div>
-      </div>
-
-      <footer>
-        <div className="container">
-          <a href="/#" className="logo-font">
-            conduit
-          </a>
-          <span className="attribution">
-            An interactive learning project from <a href="https://thinkster.io">Thinkster</a>. Code &amp; design
-            licensed under MIT.
-          </span>
-        </div>
-      </footer>
-    </>
+    </div>
   );
 }
