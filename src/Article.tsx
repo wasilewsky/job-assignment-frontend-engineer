@@ -1,4 +1,50 @@
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { getArticle } from "api/getArticle";
+import type { Article as ArticleModel } from "types/conduit";
+import { formatArticleDate } from "utils/date";
+
+const AVATAR_FALLBACK = "https://static.productionready.io/images/smiley-cyrus.jpg";
+
 export default function Article() {
+  const { slug } = useParams<{ slug: string }>();
+  const [article, setArticle] = useState<ArticleModel | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!slug) {
+      setError("Invalid article slug.");
+      setLoading(false);
+      return;
+    }
+
+    let mounted = true;
+    setLoading(true);
+    setError(null);
+
+    (async () => {
+      try {
+        const nextArticle = await getArticle(slug);
+        if (mounted) {
+          setArticle(nextArticle);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err.message : "Failed to load article.");
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [slug]);
+
   return (
     <>
       <nav className="navbar navbar-light">
@@ -40,117 +86,123 @@ export default function Article() {
       </nav>
 
       <div className="article-page">
-        <div className="banner">
-          <div className="container">
-            <h1>How to build webapps that scale</h1>
+        {loading ? (
+          <div style={{ padding: "24px", textAlign: "center" }}>Loading article...</div>
+        ) : error ? (
+          <div style={{ padding: "24px", color: "red", textAlign: "center" }}>{error}</div>
+        ) : article ? (
+          <>
+            <div className="banner">
+              <div className="container">
+                <h1>{article.title}</h1>
 
-            <div className="article-meta">
-              <a href="/#/profile/ericsimmons">
-                <img src="http://i.imgur.com/Qr71crq.jpg" />
-              </a>
-              <div className="info">
-                <a href="/#/profile/ericsimmons" className="author">
-                  Eric Simons
-                </a>
-                <span className="date">January 20th</span>
-              </div>
-              <button className="btn btn-sm btn-outline-secondary">
-                <i className="ion-plus-round" />
-                &nbsp; Follow Eric Simons <span className="counter">(10)</span>
-              </button>
-              &nbsp;&nbsp;
-              <button className="btn btn-sm btn-outline-primary">
-                <i className="ion-heart" />
-                &nbsp; Favorite Post <span className="counter">(29)</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="container page">
-          <div className="row article-content">
-            <div className="col-md-12">
-              <p>Web development technologies have evolved at an incredible clip over the past few years.</p>
-              <h2 id="introducing-ionic">Introducing RealWorld.</h2>
-              <p>It&lsquo;s a great solution for learning how other frameworks work.</p>
-            </div>
-          </div>
-
-          <hr />
-
-          <div className="article-actions">
-            <div className="article-meta">
-              <a href="/#/profile/ericsimmons">
-                <img src="http://i.imgur.com/Qr71crq.jpg" />
-              </a>
-              <div className="info">
-                <a href="/#/profile/ericsimmons" className="author">
-                  Eric Simons
-                </a>
-                <span className="date">January 20th</span>
-              </div>
-              <button className="btn btn-sm btn-outline-secondary">
-                <i className="ion-plus-round" />
-                &nbsp; Follow Eric Simons
-              </button>
-              &nbsp;
-              <button className="btn btn-sm btn-outline-primary">
-                <i className="ion-heart" />
-                &nbsp; Favorite Post <span className="counter">(29)</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="col-xs-12 col-md-8 offset-md-2">
-              <form className="card comment-form">
-                <div className="card-block">
-                  <textarea className="form-control" placeholder="Write a comment..." rows={3} />
-                </div>
-                <div className="card-footer">
-                  <img src="http://i.imgur.com/Qr71crq.jpg" className="comment-author-img" />
-                  <button className="btn btn-sm btn-primary">Post Comment</button>
-                </div>
-              </form>
-
-              <div className="card">
-                <div className="card-block">
-                  <p className="card-text">With supporting text below as a natural lead-in to additional content.</p>
-                </div>
-                <div className="card-footer">
-                  <a href="/#/profile/jacobschmidt" className="comment-author">
-                    <img src="http://i.imgur.com/Qr71crq.jpg" className="comment-author-img" />
+                <div className="article-meta">
+                  <a href={`/#/profile/${article.author.username}`}>
+                    <img src={article.author.image || AVATAR_FALLBACK} alt={article.author.username} />
                   </a>
+                  <div className="info">
+                    <a href={`/#/profile/${article.author.username}`} className="author">
+                      {article.author.username}
+                    </a>
+                    <span className="date">{formatArticleDate(article.createdAt)}</span>
+                  </div>
+                  <button className="btn btn-sm btn-outline-secondary">
+                    <i className="ion-plus-round" />
+                    &nbsp; Follow {article.author.username} <span className="counter">(10)</span>
+                  </button>
+                  &nbsp;&nbsp;
+                  <button className="btn btn-sm btn-outline-primary">
+                    <i className="ion-heart" />
+                    &nbsp; Favorite Post <span className="counter">({article.favoritesCount})</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="container page">
+              <div className="row article-content">
+                <div className="col-md-12">
+                  <p>{article.body}</p>
+                </div>
+              </div>
+
+              <hr />
+
+              <div className="article-actions">
+                <div className="article-meta">
+                  <a href={`/#/profile/${article.author.username}`}>
+                    <img src={article.author.image || AVATAR_FALLBACK} alt={article.author.username} />
+                  </a>
+                  <div className="info">
+                    <a href={`/#/profile/${article.author.username}`} className="author">
+                      {article.author.username}
+                    </a>
+                    <span className="date">{formatArticleDate(article.createdAt)}</span>
+                  </div>
+                  <button className="btn btn-sm btn-outline-secondary">
+                    <i className="ion-plus-round" />
+                    &nbsp; Follow {article.author.username}
+                  </button>
                   &nbsp;
-                  <a href="/#/profile/jacobschmidt" className="comment-author">
-                    Jacob Schmidt
-                  </a>
-                  <span className="date-posted">Dec 29th</span>
+                  <button className="btn btn-sm btn-outline-primary">
+                    <i className="ion-heart" />
+                    &nbsp; Favorite Post <span className="counter">({article.favoritesCount})</span>
+                  </button>
                 </div>
               </div>
 
-              <div className="card">
-                <div className="card-block">
-                  <p className="card-text">With supporting text below as a natural lead-in to additional content.</p>
-                </div>
-                <div className="card-footer">
-                  <a href="/#/profile/jacobschmidt" className="comment-author">
-                    <img src="http://i.imgur.com/Qr71crq.jpg" className="comment-author-img" />
-                  </a>
-                  &nbsp;
-                  <a href="/#/profile/jacobschmidt" className="comment-author">
-                    Jacob Schmidt
-                  </a>
-                  <span className="date-posted">Dec 29th</span>
-                  <span className="mod-options">
-                    <i className="ion-edit" />
-                    <i className="ion-trash-a" />
-                  </span>
+              <div className="row">
+                <div className="col-xs-12 col-md-8 offset-md-2">
+                  <form className="card comment-form">
+                    <div className="card-block">
+                      <textarea className="form-control" placeholder="Write a comment..." rows={3} />
+                    </div>
+                    <div className="card-footer">
+                      <img src={article.author.image || AVATAR_FALLBACK} className="comment-author-img" alt={article.author.username} />
+                      <button className="btn btn-sm btn-primary">Post Comment</button>
+                    </div>
+                  </form>
+
+                  <div className="card">
+                    <div className="card-block">
+                      <p className="card-text">With supporting text below as a natural lead-in to additional content.</p>
+                    </div>
+                    <div className="card-footer">
+                      <a href="/#/profile/jacobschmidt" className="comment-author">
+                        <img src="http://i.imgur.com/Qr71crq.jpg" className="comment-author-img" alt="Jacob Schmidt" />
+                      </a>
+                      &nbsp;
+                      <a href="/#/profile/jacobschmidt" className="comment-author">
+                        Jacob Schmidt
+                      </a>
+                      <span className="date-posted">Dec 29th</span>
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="card-block">
+                      <p className="card-text">With supporting text below as a natural lead-in to additional content.</p>
+                    </div>
+                    <div className="card-footer">
+                      <a href="/#/profile/jacobschmidt" className="comment-author">
+                        <img src="http://i.imgur.com/Qr71crq.jpg" className="comment-author-img" alt="Jacob Schmidt" />
+                      </a>
+                      &nbsp;
+                      <a href="/#/profile/jacobschmidt" className="comment-author">
+                        Jacob Schmidt
+                      </a>
+                      <span className="date-posted">Dec 29th</span>
+                      <span className="mod-options">
+                        <i className="ion-edit" />
+                        <i className="ion-trash-a" />
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        ) : null}
       </div>
 
       <footer>
