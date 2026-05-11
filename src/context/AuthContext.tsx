@@ -22,7 +22,8 @@ function readStoredAuth(): { token: string | null; user: User | null } {
   const raw = localStorage.getItem(STORAGE_USER);
   if (!token || !raw) return { token: null, user: null };
   try {
-    return { token, user: JSON.parse(raw) as User };
+    const user: User = JSON.parse(raw);
+    return { token, user };
   } catch {
     return { token: null, user: null };
   }

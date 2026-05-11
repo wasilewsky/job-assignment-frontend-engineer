@@ -5,14 +5,14 @@ import { getArticles } from "api/getArticles";
 import { followUser, unfollowUser } from "api/toggleFollow";
 import { favoriteArticle, unfavoriteArticle } from "api/toggleFavorite";
 import { useAuth } from "context/AuthContext";
-import type { Profile, Article } from "types/conduit";
+import type { Profile as ConduitProfile, Article } from "types/conduit";
 import { formatArticleDate } from "utils/date";
 
 const AVATAR_FALLBACK = "https://static.productionready.io/images/smiley-cyrus.jpg";
 
 export default function Profile() {
   const { username } = useParams<{ username: string }>();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<ConduitProfile | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export default function Profile() {
     }
     if (!profile) return;
     try {
-      let updatedProfile: Profile;
+      let updatedProfile: ConduitProfile;
       if (profile.following) {
         updatedProfile = await unfollowUser(profile.username, token);
       } else {

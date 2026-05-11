@@ -8,8 +8,8 @@ export type ApiRequestOptions = {
 };
 
 export class ApiRequestError extends Error {
-  readonly status: number;
-  readonly body: unknown;
+  status: number;
+  body: unknown;
 
   constructor(status: number, body: unknown) {
     super(`API error ${status}`);
@@ -22,6 +22,10 @@ export class ApiRequestError extends Error {
 function joinUrl(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${API_ROOT}${p}`;
+}
+
+function parseJsonUnknown(text: string): unknown {
+  return JSON.parse(text);
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
@@ -47,7 +51,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   let data: unknown;
   if (text) {
     try {
-      data = JSON.parse(text) as unknown;
+      data = parseJsonUnknown(text);
     } catch {
       throw new ApiRequestError(res.status, text);
     }
@@ -57,5 +61,6 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     throw new ApiRequestError(res.status, data);
   }
 
-  return data as T;
+  // @ts-expect-error unknown JSON vs caller generic T (no `as` — keeps CRA/Babel happy)
+  return data;
 }
