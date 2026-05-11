@@ -75,15 +75,16 @@ export default function LoginRegister() {
               {!isLogin ? (
                 <>
                   <h1 className="text-xs-center">Registration</h1>
-                  <p className="text-xs-center">Registration is not implemented in this assignment.<br />
-                    <a href="/login">Back to login</a>
+                  <p className="text-xs-center">
+                    Registration is not implemented in this assignment.<br />
+                    <a href="/#/login">Back to login</a>
                   </p>
                 </>
               ) : (
                 <>
                   <h1 className="text-xs-center">Sign in</h1>
                   <p className="text-xs-center">
-                    <a href="/register">Need an account?</a>
+                    <a href="/#/register">Need an account?</a>
                   </p>
                   {error && (
                     <ul className="error-messages">
