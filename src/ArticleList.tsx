@@ -2,11 +2,16 @@ import React, { useEffect, useState } from "react";
 import { getArticles } from "api/getArticles";
 import type { Article } from "types/conduit";
 import { formatArticleDate } from "utils/date";
+import { favoriteArticle, unfavoriteArticle } from "api/toggleFavorite";
+import { useAuth } from "context/AuthContext";
 
 export default function ArticleList() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Get user from AuthContext to check if logged in
+  const { token } = useAuth();
 
   useEffect(() => {
     let mounted = true;
@@ -35,6 +40,28 @@ export default function ArticleList() {
       mounted = false;
     };
   }, []);
+
+  // Handle click on heart button
+  const handleFavoriteClick = async (article: Article) => {
+    if (!token) {
+      window.location.hash = "/login";
+      return;
+    }
+
+    try {
+      let updated: Article;
+      if (article.favorited) {
+        updated = await unfavoriteArticle(article.slug, token);
+      } else {
+        updated = await favoriteArticle(article.slug, token);
+      }
+      setArticles((prev) => prev.map((a) => (a.slug === updated.slug ? updated : a)));
+    } catch (err) {
+      // Optionally show an error message per-article or with setError
+      // For now, do nothing or set error globally if you want
+      setError("Error updating favorite status");
+    }
+  };
 
   return (
     <>
@@ -122,7 +149,12 @@ export default function ArticleList() {
                         </a>
                         <span className="date">{formatArticleDate(article.createdAt)}</span>
                       </div>
-                      <button className="btn btn-outline-primary btn-sm pull-xs-right">
+                      <button
+                        className={`btn btn-outline-primary btn-sm pull-xs-right${article.favorited ? " active" : ""}`}
+                        onClick={() => handleFavoriteClick(article)}
+                        aria-pressed={article.favorited}
+                        style={{ cursor: "pointer" }}
+                      >
                         <i className="ion-heart" /> {article.favoritesCount}
                       </button>
                     </div>

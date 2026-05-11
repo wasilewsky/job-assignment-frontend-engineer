@@ -3,6 +3,8 @@ import { useParams } from "react-router-dom";
 import { getArticle } from "api/getArticle";
 import type { Article as ArticleModel } from "types/conduit";
 import { formatArticleDate } from "utils/date";
+import { useAuth } from "context/AuthContext";
+import { favoriteArticle, unfavoriteArticle } from "api/toggleFavorite";
 
 const AVATAR_FALLBACK = "https://static.productionready.io/images/smiley-cyrus.jpg";
 
@@ -11,6 +13,7 @@ export default function Article() {
   const [article, setArticle] = useState<ArticleModel | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { token } = useAuth();
 
   useEffect(() => {
     if (!slug) {
@@ -44,6 +47,26 @@ export default function Article() {
       mounted = false;
     };
   }, [slug]);
+
+  // Handler for favorite button
+  const handleFavoriteClick = async () => {
+    if (!token) {
+      window.location.hash = "/login";
+      return;
+    }
+    if (!article) return;
+    try {
+      let updated: ArticleModel;
+      if (article.favorited) {
+        updated = await unfavoriteArticle(article.slug, token);
+      } else {
+        updated = await favoriteArticle(article.slug, token);
+      }
+      setArticle(updated);
+    } catch (err) {
+      setError("Error updating favorite status.");
+    }
+  };
 
   return (
     <>
@@ -111,7 +134,12 @@ export default function Article() {
                     &nbsp; Follow {article.author.username} <span className="counter">(10)</span>
                   </button>
                   &nbsp;&nbsp;
-                  <button className="btn btn-sm btn-outline-primary">
+                  <button
+                    className={`btn btn-sm btn-outline-primary${article.favorited ? " active" : ""}`}
+                    onClick={handleFavoriteClick}
+                    aria-pressed={article.favorited}
+                    style={{ cursor: "pointer" }}
+                  >
                     <i className="ion-heart" />
                     &nbsp; Favorite Post <span className="counter">({article.favoritesCount})</span>
                   </button>
@@ -144,7 +172,12 @@ export default function Article() {
                     &nbsp; Follow {article.author.username}
                   </button>
                   &nbsp;
-                  <button className="btn btn-sm btn-outline-primary">
+                  <button
+                    className={`btn btn-sm btn-outline-primary${article.favorited ? " active" : ""}`}
+                    onClick={handleFavoriteClick}
+                    aria-pressed={article.favorited}
+                    style={{ cursor: "pointer" }}
+                  >
                     <i className="ion-heart" />
                     &nbsp; Favorite Post <span className="counter">({article.favoritesCount})</span>
                   </button>
