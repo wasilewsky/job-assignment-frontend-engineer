@@ -1,4 +1,33 @@
+import React, { useState } from "react";
+import { useHistory, useLocation } from "react-router-dom";
+import { useAuth } from "context/AuthContext";
+
 export default function LoginRegister() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+
+  const history = useHistory();
+  const location = useLocation();
+  const { login } = useAuth();
+
+  const isLogin = location.pathname === "/login";
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      await login(email, password);
+      history.push("/");
+    } catch (err) {
+      setError("Invalid email or password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <nav className="navbar navbar-light">
@@ -43,27 +72,55 @@ export default function LoginRegister() {
         <div className="container page">
           <div className="row">
             <div className="col-md-6 offset-md-3 col-xs-12">
-              <h1 className="text-xs-center">Sign up</h1>
-              <p className="text-xs-center">
-                <a href="">Have an account?</a>
-              </p>
-
-              <ul className="error-messages">
-                <li>That email is already taken</li>
-              </ul>
-
-              <form>
-                <fieldset className="form-group">
-                  <input className="form-control form-control-lg" type="text" placeholder="Your Name" />
-                </fieldset>
-                <fieldset className="form-group">
-                  <input className="form-control form-control-lg" type="text" placeholder="Email" />
-                </fieldset>
-                <fieldset className="form-group">
-                  <input className="form-control form-control-lg" type="password" placeholder="Password" />
-                </fieldset>
-                <button className="btn btn-lg btn-primary pull-xs-right">Sign up</button>
-              </form>
+              {!isLogin ? (
+                <>
+                  <h1 className="text-xs-center">Registration</h1>
+                  <p className="text-xs-center">Registration is not implemented in this assignment.<br />
+                    <a href="/login">Back to login</a>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-xs-center">Sign in</h1>
+                  <p className="text-xs-center">
+                    <a href="/register">Need an account?</a>
+                  </p>
+                  {error && (
+                    <ul className="error-messages">
+                      <li>{error}</li>
+                    </ul>
+                  )}
+                  <form onSubmit={handleSubmit}>
+                    <fieldset className="form-group">
+                      <input
+                        className="form-control form-control-lg"
+                        type="text"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                      />
+                    </fieldset>
+                    <fieldset className="form-group">
+                      <input
+                        className="form-control form-control-lg"
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={loading}
+                      />
+                    </fieldset>
+                    <button
+                      type="submit"
+                      className="btn btn-lg btn-primary pull-xs-right"
+                      disabled={loading}
+                    >
+                      {loading ? "Signing in..." : "Sign in"}
+                    </button>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         </div>
