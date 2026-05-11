@@ -6,9 +6,8 @@ import { followUser, unfollowUser } from "api/toggleFollow";
 import { favoriteArticle, unfavoriteArticle } from "api/toggleFavorite";
 import { useAuth } from "context/AuthContext";
 import type { Profile as ConduitProfile, Article } from "types/conduit";
+import { resolveAvatarUrl } from "avatarFallback";
 import { formatArticleDate } from "utils/date";
-
-const AVATAR_FALLBACK = "https://static.productionready.io/images/smiley-cyrus.jpg";
 
 export default function Profile() {
   const { username } = useParams<{ username: string }>();
@@ -111,7 +110,7 @@ export default function Profile() {
                 ) : profile ? (
                   <>
                     <img
-                      src={profile.image || AVATAR_FALLBACK}
+                      src={resolveAvatarUrl(profile.image)}
                       className="user-img"
                       alt={profile.username}
                     />
@@ -183,7 +182,7 @@ export default function Profile() {
                     <div className="article-meta">
                       <a href={`/#/profile/${article.author.username}`}>
                         <img
-                          src={article.author.image || AVATAR_FALLBACK}
+                          src={resolveAvatarUrl(article.author.image)}
                           alt={article.author.username}
                         />
                       </a>

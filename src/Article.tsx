@@ -6,8 +6,7 @@ import { formatArticleDate } from "utils/date";
 import { useAuth } from "context/AuthContext";
 import { favoriteArticle, unfavoriteArticle } from "api/toggleFavorite";
 import { followUser, unfollowUser } from "api/toggleFollow";
-
-const AVATAR_FALLBACK = "https://static.productionready.io/images/smiley-cyrus.jpg";
+import { resolveAvatarUrl } from "avatarFallback";
 
 export default function Article() {
   const { slug } = useParams<{ slug: string }>();
@@ -119,7 +118,7 @@ export default function Article() {
 
                 <div className="article-meta">
                   <a href={`/#/profile/${article.author.username}`}>
-                    <img src={article.author.image || AVATAR_FALLBACK} alt={article.author.username} />
+                    <img src={resolveAvatarUrl(article.author.image)} alt={article.author.username} />
                   </a>
                   <div className="info">
                     <a href={`/#/profile/${article.author.username}`} className="author">
@@ -161,7 +160,7 @@ export default function Article() {
               <div className="article-actions">
                 <div className="article-meta">
                   <a href={`/#/profile/${article.author.username}`}>
-                    <img src={article.author.image || AVATAR_FALLBACK} alt={article.author.username} />
+                    <img src={resolveAvatarUrl(article.author.image)} alt={article.author.username} />
                   </a>
                   <div className="info">
                     <a href={`/#/profile/${article.author.username}`} className="author">
@@ -197,7 +196,7 @@ export default function Article() {
                       <textarea className="form-control" placeholder="Write a comment..." rows={3} />
                     </div>
                     <div className="card-footer">
-                      <img src={article.author.image || AVATAR_FALLBACK} className="comment-author-img" alt={article.author.username} />
+                      <img src={resolveAvatarUrl(article.author.image)} className="comment-author-img" alt={article.author.username} />
                       <button className="btn btn-sm btn-primary">Post Comment</button>
                     </div>
                   </form>

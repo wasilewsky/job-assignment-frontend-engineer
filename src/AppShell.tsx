@@ -1,13 +1,14 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import { resolveAvatarUrl } from "avatarFallback";
 import { useAuth } from "context/AuthContext";
-
-const AVATAR_FALLBACK = "https://static.productionready.io/images/smiley-cyrus.jpg";
 
 function AppNav() {
   const { pathname } = useLocation();
   const { user, token, initializing } = useAuth();
-  const authed = !initializing && Boolean(user && token);
+  const sessionUser = !initializing && user && token ? user : null;
+  const authed = Boolean(sessionUser);
+  const profileUsername = sessionUser ? sessionUser.username : "";
 
   const home = pathname === "/" || pathname === "";
   const editor = pathname.startsWith("/editor");
@@ -17,8 +18,8 @@ function AppNav() {
   const logout = pathname === "/logout";
   const profile =
     authed &&
-    (pathname === `/profile/${user!.username}` ||
-      pathname.startsWith(`/profile/${user!.username}/`));
+    (pathname === "/profile/" + profileUsername ||
+      pathname.startsWith("/profile/" + profileUsername + "/"));
 
   const itemClass = (active: boolean) => `nav-item${active ? " active" : ""}`;
   const linkClass = (active: boolean) => `nav-link${active ? " active" : ""}`;
@@ -50,9 +51,16 @@ function AppNav() {
                 </Link>
               </li>
               <li className={itemClass(Boolean(profile))}>
-                <Link to={`/profile/${user!.username}`} className={linkClass(Boolean(profile))}>
-                  <img src={user!.image || AVATAR_FALLBACK} className="user-pic" alt="" />
-                  &nbsp;{user!.username}
+                <Link
+                  to={"/profile/" + profileUsername}
+                  className={linkClass(Boolean(profile))}
+                >
+                  <img
+                    src={resolveAvatarUrl(sessionUser?.image)}
+                    className="user-pic"
+                    alt=""
+                  />
+                  &nbsp;{sessionUser ? sessionUser.username : ""}
                 </Link>
               </li>
               <li className={itemClass(logout)}>

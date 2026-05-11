@@ -3,6 +3,7 @@ import { getArticles } from "api/getArticles";
 import type { Article } from "types/conduit";
 import { formatArticleDate } from "utils/date";
 import { favoriteArticle, unfavoriteArticle } from "api/toggleFavorite";
+import { resolveAvatarUrl } from "avatarFallback";
 import { useAuth } from "context/AuthContext";
 
 export default function ArticleList() {
@@ -108,7 +109,7 @@ export default function ArticleList() {
                   <div className="article-preview" key={article.slug}>
                     <div className="article-meta">
                       <a href={`/#/profile/${article.author.username}`}>
-                        <img src={article.author.image || "https://static.productionready.io/images/smiley-cyrus.jpg"} alt={article.author.username} />
+                        <img src={resolveAvatarUrl(article.author.image)} alt={article.author.username} />
                       </a>
                       <div className="info">
                         <a href={`/#/profile/${article.author.username}`} className="author">
