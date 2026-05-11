@@ -184,3 +184,18 @@ You don’t have to ever use `eject`. The curated feature set is suitable for sm
 You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
 To learn React, check out the [React documentation](https://reactjs.org/).
+
+---
+
+## Notes on this implementation
+
+This section documents deliberate scope limits relative to the assignment text and the API schema shipped in `docs/schema/swagger.json`.
+
+- **Routing:** the app uses `HashRouter`. Use URLs of the form `http://localhost:8080/#/`, `http://localhost:8080/#/login`, etc. (a plain path without `/#/` is not handled by the client router).
+- **Follow author:** the UI reflects the `following` flag from the API. **No “followers count”** is shown on follow buttons: the `Profile` model in this repository’s Swagger definition only includes `username`, `bio`, `image`, and `following` — there is no follower count field to display without making up numbers.
+- **Article body:** rendered as plain text. **Markdown → HTML** (listed as optional in the brief) is not implemented.
+- **Homepage:** the **tags** column and **feed tabs** (“Your Feed” / “Global Feed”) remain static placeholders, as the brief asks to ignore tag functionality and focus on the article list.
+- **Article page:** the **comment** block is present for layout only; comments are not implemented, per the brief.
+- **Registration:** the route exists for navigation consistency; **sign-up is not implemented**, per the brief.
+- **Editor** and **Settings:** left as **non-functional skeleton pages** (forms are not wired to the API). The required user-facing scope was centred on the article list, article detail, profile, login, and logout.
+- **API base URL:** in development the default is `http://localhost:3000/api` (see `src/config.ts`). For a production Docker image against another host, set **`REACT_APP_API_URL`** at **build** time (Create React App embeds env at build).
