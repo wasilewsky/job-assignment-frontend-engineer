@@ -1,4 +1,41 @@
+import React, { useEffect, useState } from "react";
+import { getArticles } from "api/getArticles";
+import type { Article } from "types/conduit";
+import { formatArticleDate } from "utils/date";
+
 export default function ArticleList() {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await getArticles({ limit: 20, offset: 0 });
+        if (mounted) {
+          setArticles(data.articles);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err.message : "Failed to fetch articles");
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <>
       <nav className="navbar navbar-light">
@@ -65,49 +102,38 @@ export default function ArticleList() {
                 </ul>
               </div>
 
-              <div className="article-preview">
-                <div className="article-meta">
-                  <a href="/#/profile/ericsimmons">
-                    <img src="http://i.imgur.com/Qr71crq.jpg" />
-                  </a>
-                  <div className="info">
-                    <a href="/#/profile/ericsimmons" className="author">
-                      Eric Simons
+              {/* render states for loading, error, and articles */}
+              {loading ? (
+                <div>Loading...</div>
+              ) : error ? (
+                <div style={{ color: "red" }}>{error}</div>
+              ) : articles.length === 0 ? (
+                <div>No articles are here... yet.</div>
+              ) : (
+                articles.map((article) => (
+                  <div className="article-preview" key={article.slug}>
+                    <div className="article-meta">
+                      <a href={`/#/profile/${article.author.username}`}>
+                        <img src={article.author.image || "https://static.productionready.io/images/smiley-cyrus.jpg"} alt={article.author.username} />
+                      </a>
+                      <div className="info">
+                        <a href={`/#/profile/${article.author.username}`} className="author">
+                          {article.author.username}
+                        </a>
+                        <span className="date">{formatArticleDate(article.createdAt)}</span>
+                      </div>
+                      <button className="btn btn-outline-primary btn-sm pull-xs-right">
+                        <i className="ion-heart" /> {article.favoritesCount}
+                      </button>
+                    </div>
+                    <a href={`/#/${article.slug}`} className="preview-link">
+                      <h1>{article.title}</h1>
+                      <p>{article.description}</p>
+                      <span>Read more...</span>
                     </a>
-                    <span className="date">January 20th</span>
                   </div>
-                  <button className="btn btn-outline-primary btn-sm pull-xs-right">
-                    <i className="ion-heart" /> 29
-                  </button>
-                </div>
-                <a href="/#/how-to-build-webapps-that-scale" className="preview-link">
-                  <h1>How to build webapps that scale</h1>
-                  <p>This is the description for the post.</p>
-                  <span>Read more...</span>
-                </a>
-              </div>
-
-              <div className="article-preview">
-                <div className="article-meta">
-                  <a href="/#/profile/albertpai">
-                    <img src="http://i.imgur.com/N4VcUeJ.jpg" />
-                  </a>
-                  <div className="info">
-                    <a href="/#/profile/albertpai" className="author">
-                      Albert Pai
-                    </a>
-                    <span className="date">January 20th</span>
-                  </div>
-                  <button className="btn btn-outline-primary btn-sm pull-xs-right">
-                    <i className="ion-heart" /> 32
-                  </button>
-                </div>
-                <a href="/#/the-song-you-wont-ever-stop-singing" className="preview-link">
-                  <h1>The song you won&lsquo;t ever stop singing. No matter how hard you try.</h1>
-                  <p>This is the description for the post.</p>
-                  <span>Read more...</span>
-                </a>
-              </div>
+                ))
+              )}
             </div>
 
             <div className="col-md-3">
